@@ -1,0 +1,111 @@
+  <!DOCTYPE html>
+  <html>
+
+  <head>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="js/jquery.mobile-1.4.5.min.css">
+    <script src="js/jquery.min.js"></script>
+    <script src="js/jquery.mobile-1.4.5.min.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet-src.js"></script>
+    <script src="https://unpkg.com/esri-leaflet"></script>
+    <link rel="stylesheet" href="https://unpkg.com/esri-leaflet-geocoder/dist/esri-leaflet-geocoder.css">
+    <script src="https://unpkg.com/esri-leaflet-geocoder"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css">
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js"></script>
+
+    <script src="https://kit.fontawesome.com/ca8e9033cf.js" crossorigin="anonymous"></script>
+
+    <style>
+      .leaflet-bar {
+        color: black;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div>
+      <div data-role="header">
+        <h1>Working with Geolocation and Maps</h1>
+      </div>
+
+      <div data-role="main" class="ui-content">
+        <div id="mapid" style="height: 85vh;"></div>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      if (navigator.geolocation == undefined) {
+        alert("Geolocation undefined");
+      } else {
+        navigator.geolocation.getCurrentPosition(userLocated, locationError);
+
+        function userLocated(position) {
+          var latitude = position.coords.latitude;
+          var longitude = position.coords.longitude;
+
+          var mymap = L.map('mapid').setView([0, 0], 2);
+          L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+            maxZoom: 19,
+            attribution: 'Map data &copy;<a href="https://www.openstreetmap.org/">OpenStreetMap</a>contributors,<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>,Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+            id: 'mapbox.streets',
+            accessToken: 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw'
+          }).addTo(mymap);
+
+          L.easyButton('fa-refresh', function() {
+            mymap.setView([0, 0], 2);
+          }).addTo(mymap);
+
+          L.easyButton('fa-home', function() {
+            mymap.setView([latitude, longitude], 15);
+            var marker = L.marker([latitude, longitude]).addTo(mymap);
+            marker.bindPopup("Your Location").closePopup();
+          }).addTo(mymap);
+
+          var searchControl = L.esri.Geocoding.geosearch().addTo(mymap);
+          var results = new L.LayerGroup().addTo(mymap);
+          searchControl.on('results', function(data) {
+            results.clearLayers();
+            for (var i = data.results.length - 1; i >= 0; i--) {
+              results.addLayer(L.marker(data.results[i].latlng));
+            }
+          });
+
+          var geocodeService = L.esri.Geocoding.geocodeService();
+          mymap.on('click', function(e) {
+            geocodeService.reverse().latlng(e.latlng).run(function(error, result) {
+              if (error) {
+                return;
+              }
+              var popLocation = e.latlng;
+              var popup = L.popup()
+                .setLatLng(popLocation)
+                .setContent(result.address.Match_addr)
+                .openOn(mymap);
+            });
+          });
+        }
+
+        function locationError(error) {
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              alert("Permission Denied- " + error.message);
+              break;
+            case error.POSITION_UNAVAILABLE:
+              alert("Position Not Available- " + error.message);
+              break;
+            case error.TIMEOUT:
+              alert("Request Time out- " + error.message);
+              break;
+          }
+        }
+      }
+    </script>
+
+  </body>
+
+  </html>
